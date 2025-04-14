@@ -24,7 +24,9 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm ci
+        npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event jest jest-environment-jsdom @types/jest
     
     - name: Run linting
       run: npm run lint
@@ -34,6 +36,8 @@ jobs:
     
     - name: Run tests
       run: npm run test
+      env:
+        CI: true
       
     - name: Build application
       run: npm run build 

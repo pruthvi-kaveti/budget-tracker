@@ -18,6 +18,11 @@ const customJestConfig = {
     '<rootDir>/**/*.test.ts',
     '<rootDir>/**/*.test.tsx',
   ],
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+  },
+  moduleDirectories: ['node_modules', '<rootDir>/'],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
