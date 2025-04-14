@@ -53,4 +53,10 @@ This script automates the git workflow process with proper error checking and ve
 
 - PowerShell 5.0 or higher
 - Git installed at `C:\Program Files\Git\bin\git.exe`
-- Node.js and npm for running tests 
+- Node.js and npm for running tests
+
+## Important Notes
+
+- Keep the PowerShell terminal visible while the script is running
+- The script will pause for your input at the change review step
+- Make sure to press any key in the correct terminal when prompted 

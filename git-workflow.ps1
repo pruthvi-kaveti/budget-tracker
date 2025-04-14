@@ -4,15 +4,6 @@ param(
     [string]$CommitMessage
 )
 
-# Function to check if a command succeeded
-function Test-CommandSuccess {
-    param($LastExitCode)
-    if ($LastExitCode -ne 0) {
-        Write-Error "Command failed with exit code $LastExitCode"
-        exit $LastExitCode
-    }
-}
-
 # Function to run git commands with error checking
 function Invoke-GitCommand {
     param(
@@ -20,23 +11,49 @@ function Invoke-GitCommand {
         [string]$Description
     )
     Write-Host "`n$Description..." -ForegroundColor Cyan
-    & "C:\Program Files\Git\bin\git.exe" $Command
-    Test-CommandSuccess $LASTEXITCODE
+    $gitPath = "C:\Program Files\Git\bin\git.exe"
+    
+    # Execute git command with proper argument handling
+    try {
+        # Use Start-Process to properly handle arguments
+        $process = Start-Process -FilePath $gitPath -ArgumentList $Command -NoNewWindow -Wait -PassThru
+        
+        if ($process.ExitCode -ne 0) {
+            Write-Error "Git command failed: git $Command"
+            exit $process.ExitCode
+        }
+    } catch {
+        Write-Error "Error executing git command: $_"
+        exit 1
+    }
 }
 
 # 1. Run tests first
 Write-Host "`nRunning tests..." -ForegroundColor Cyan
-npm test
-Test-CommandSuccess $LASTEXITCODE
+try {
+    npm test
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Tests failed"
+        exit $LASTEXITCODE
+    }
+} catch {
+    Write-Error "Error running tests: $_"
+    exit 1
+}
 
 # 2. Check git status
 Invoke-GitCommand "status" "Checking repository status"
 
 # 3. Show changes
 Write-Host "`nShowing changes..." -ForegroundColor Cyan
-& "C:\Program Files\Git\bin\git.exe" diff
-Write-Host "`nPress any key to continue after reviewing changes..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+try {
+    & "C:\Program Files\Git\bin\git.exe" diff
+    Write-Host "`nPress any key to continue after reviewing changes..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+} catch {
+    Write-Error "Error showing changes: $_"
+    exit 1
+}
 
 # 4. Stage all changes
 Invoke-GitCommand "add ." "Staging all changes"
