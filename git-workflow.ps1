@@ -55,8 +55,34 @@ try {
     exit 1
 }
 
-# 4. Stage all changes
-Invoke-GitCommand "add ." "Staging all changes"
+# 4. Stage changes one by one
+Write-Host "`nStaging changes one by one..." -ForegroundColor Cyan
+try {
+    # Get list of modified files
+    $modifiedFiles = & "C:\Program Files\Git\bin\git.exe" status --porcelain | Where-Object { $_ -match '^ M|^A ' } | ForEach-Object { ($_ -split ' ')[1] }
+    
+    if ($modifiedFiles.Count -eq 0) {
+        Write-Host "No changes to stage." -ForegroundColor Yellow
+    } else {
+        Write-Host "Found $($modifiedFiles.Count) modified files:" -ForegroundColor Cyan
+        $modifiedFiles | ForEach-Object { Write-Host "- $_" }
+        
+        foreach ($file in $modifiedFiles) {
+            Write-Host "`nDo you want to stage '$file'? (Y/N)" -ForegroundColor Yellow
+            $response = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            
+            if ($response.Character -eq 'Y' -or $response.Character -eq 'y') {
+                Write-Host "Staging '$file'..." -ForegroundColor Green
+                Invoke-GitCommand "add `"$file`"" "Staging $file"
+            } else {
+                Write-Host "Skipping '$file'..." -ForegroundColor Yellow
+            }
+        }
+    }
+} catch {
+    Write-Error "Error staging changes: $_"
+    exit 1
+}
 
 # 5. Verify staged changes
 Invoke-GitCommand "status" "Verifying staged changes"
