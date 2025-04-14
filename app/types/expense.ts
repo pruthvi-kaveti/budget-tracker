@@ -14,8 +14,8 @@ export interface Expense {
   category: string;
   /** Description of the expense */
   description: string;
-  /** Date when the expense occurred */
-  date: Date;
+  /** Date when the expense occurred (ISO string format) */
+  date: string;
 }
 
 export interface CategoryTotal {
