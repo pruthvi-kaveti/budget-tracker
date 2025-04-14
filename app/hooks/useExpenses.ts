@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Expense, CategoryTotal, BudgetSettings } from '../types/expense';
 
 const defaultBudgetSettings: BudgetSettings = {
@@ -16,6 +16,43 @@ export const useExpenses = () => {
   const [budgetSettings, setBudgetSettings] = useState<BudgetSettings>(defaultBudgetSettings);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+  const calculateTotals = useCallback(() => {
+    const filteredExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getMonth() === selectedMonth && 
+             expenseDate.getFullYear() === selectedYear;
+    });
+
+    const newTotalSpent = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    setMonthlySpending(newTotalSpent);
+    setTotalBalance(budgetSettings.monthlyBudget - newTotalSpent);
+
+    // Calculate category totals with budget percentages for selected month
+    const categoryMap = new Map<string, number>();
+    filteredExpenses.forEach((expense) => {
+      const current = categoryMap.get(expense.category) || 0;
+      categoryMap.set(expense.category, current + expense.amount);
+    });
+
+    const totals = Array.from(categoryMap.entries()).map(([category, amount]) => {
+      const categoryBudget = budgetSettings.categoryBudgets.find(b => b.category === category);
+      const budgetAmount = categoryBudget?.amount || 0;
+      const percentage = budgetAmount > 0 ? (amount / budgetAmount) * 100 : (amount / newTotalSpent) * 100;
+      
+      return {
+        category,
+        amount,
+        percentage,
+      };
+    });
+
+    setCategoryTotals(totals.sort((a, b) => b.amount - a.amount));
+  }, [expenses, budgetSettings, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    calculateTotals();
+  }, [expenses, budgetSettings, selectedMonth, selectedYear, calculateTotals]);
 
   // Load expenses and budget settings from localStorage on initial render
   useEffect(() => {
@@ -34,48 +71,7 @@ export const useExpenses = () => {
   useEffect(() => {
     localStorage.setItem('expenses', JSON.stringify(expenses));
     localStorage.setItem('budgetSettings', JSON.stringify(budgetSettings));
-    calculateTotals();
-  }, [expenses, budgetSettings, selectedMonth, selectedYear]);
-
-  const calculateTotals = () => {
-    // Calculate total balance
-    const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    setTotalBalance(total);
-
-    // Calculate monthly spending (selected month)
-    const monthlyTotal = expenses.reduce((sum, expense) => {
-      const expenseDate = new Date(expense.date);
-      if (expenseDate.getMonth() === selectedMonth && expenseDate.getFullYear() === selectedYear) {
-        return sum + expense.amount;
-      }
-      return sum;
-    }, 0);
-    setMonthlySpending(monthlyTotal);
-
-    // Calculate category totals with budget percentages for selected month
-    const categoryMap = new Map<string, number>();
-    expenses.forEach((expense) => {
-      const expenseDate = new Date(expense.date);
-      if (expenseDate.getMonth() === selectedMonth && expenseDate.getFullYear() === selectedYear) {
-        const current = categoryMap.get(expense.category) || 0;
-        categoryMap.set(expense.category, current + expense.amount);
-      }
-    });
-
-    const totals = Array.from(categoryMap.entries()).map(([category, amount]) => {
-      const categoryBudget = budgetSettings.categoryBudgets.find(b => b.category === category);
-      const budgetAmount = categoryBudget?.amount || 0;
-      const percentage = budgetAmount > 0 ? (amount / budgetAmount) * 100 : (amount / monthlyTotal) * 100;
-      
-      return {
-        category,
-        amount,
-        percentage,
-      };
-    });
-
-    setCategoryTotals(totals.sort((a, b) => b.amount - a.amount));
-  };
+  }, [expenses, budgetSettings]);
 
   const addExpense = (expense: Omit<Expense, 'id'>) => {
     const newExpense: Expense = {

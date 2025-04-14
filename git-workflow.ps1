@@ -28,7 +28,20 @@ function Invoke-GitCommand {
     }
 }
 
-# 1. Run tests first
+# 1. Run linting checks first
+Write-Host "`nRunning linting checks..." -ForegroundColor Cyan
+try {
+    npm run lint
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Linting failed. Please fix the linting errors before committing."
+        exit $LASTEXITCODE
+    }
+} catch {
+    Write-Error "Error running linting checks: $_"
+    exit 1
+}
+
+# 2. Run tests
 Write-Host "`nRunning tests..." -ForegroundColor Cyan
 try {
     npm test
@@ -41,10 +54,10 @@ try {
     exit 1
 }
 
-# 2. Check git status
+# 3. Check git status
 Invoke-GitCommand "status" "Checking repository status"
 
-# 3. Show changes
+# 4. Show changes
 Write-Host "`nShowing changes..." -ForegroundColor Cyan
 try {
     & "C:\Program Files\Git\bin\git.exe" diff
@@ -55,11 +68,15 @@ try {
     exit 1
 }
 
-# 4. Stage changes one by one
+# 5. Stage changes one by one
 Write-Host "`nStaging changes one by one..." -ForegroundColor Cyan
 try {
     # Get list of modified files
-    $modifiedFiles = & "C:\Program Files\Git\bin\git.exe" status --porcelain | Where-Object { $_ -match '^ M|^A ' } | ForEach-Object { ($_ -split ' ')[1] }
+    $modifiedFiles = & "C:\Program Files\Git\bin\git.exe" status --porcelain | ForEach-Object {
+        if ($_ -match '^.M\s+(.+)$') {
+            $matches[1]
+        }
+    }
     
     if ($modifiedFiles.Count -eq 0) {
         Write-Host "No changes to stage." -ForegroundColor Yellow
@@ -73,7 +90,11 @@ try {
             
             if ($response.Character -eq 'Y' -or $response.Character -eq 'y') {
                 Write-Host "Staging '$file'..." -ForegroundColor Green
-                Invoke-GitCommand "add `"$file`"" "Staging $file"
+                & "C:\Program Files\Git\bin\git.exe" add $file
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Failed to stage $file"
+                    exit $LASTEXITCODE
+                }
             } else {
                 Write-Host "Skipping '$file'..." -ForegroundColor Yellow
             }
@@ -84,19 +105,19 @@ try {
     exit 1
 }
 
-# 5. Verify staged changes
+# 6. Verify staged changes
 Invoke-GitCommand "status" "Verifying staged changes"
 
-# 6. Commit changes
+# 7. Commit changes
 Invoke-GitCommand "commit -m `"$CommitMessage`"" "Committing changes"
 
-# 7. Pull latest changes
+# 8. Pull latest changes
 Invoke-GitCommand "pull" "Pulling latest changes"
 
-# 8. Push changes
+# 9. Push changes
 Invoke-GitCommand "push" "Pushing changes"
 
-# 9. Final status check
+# 10. Final status check
 Invoke-GitCommand "status" "Final status check"
 
 Write-Host "`nWorkflow completed successfully! 🎉" -ForegroundColor Green 

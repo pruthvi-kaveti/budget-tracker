@@ -1,7 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import AddExpense from './AddExpense'
-import { Expense } from '../types/expense'
 
 describe('AddExpense', () => {
   const mockOnAddExpense = jest.fn()

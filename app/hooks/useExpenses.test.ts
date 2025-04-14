@@ -38,7 +38,7 @@ describe('useExpenses', () => {
     const { result } = renderHook(() => useExpenses())
     
     expect(result.current.expenses).toEqual([])
-    expect(result.current.totalBalance).toBe(0)
+    expect(result.current.totalBalance).toBe(50000) // Default monthly budget
     expect(result.current.monthlySpending).toBe(0)
     expect(result.current.categoryTotals).toEqual([])
     expect(result.current.selectedMonth).toBe(3) // April (0-indexed)
@@ -64,7 +64,7 @@ describe('useExpenses', () => {
     const { result } = renderHook(() => useExpenses())
     
     expect(result.current.expenses).toEqual(mockExpenses)
-    expect(result.current.totalBalance).toBe(100)
+    expect(result.current.totalBalance).toBe(49900) // Default budget (50000) - expense amount (100)
   })
   
   it('adds a new expense correctly', () => {
@@ -87,7 +87,7 @@ describe('useExpenses', () => {
       description: 'Bus fare',
       date: '2024-04-15T00:00:00.000Z'
     })
-    expect(result.current.totalBalance).toBe(50)
+    expect(result.current.totalBalance).toBe(49950) // Default budget (50000) - expense amount (50)
   })
   
   it('filters expenses by selected month and year', () => {
